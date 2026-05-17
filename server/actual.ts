@@ -81,8 +81,6 @@ export async function connectToActual(
   const normalizedServerUrl = validateAndNormalizeServerUrl(serverUrl);
 
   console.log(`[CONNECT] Starting connection to Actual Budget`);
-  console.log(`[CONNECT] Server URL: ${normalizedServerUrl}`);
-  console.log(`[CONNECT] Password length: ${password.length} chars`);
 
   try {
     await ensureInitialized(normalizedServerUrl, password);
@@ -90,9 +88,7 @@ export async function connectToActual(
     const syncId = await resolveBudgetSyncId(budgetSyncId);
 
     if (activeServerUrl === normalizedServerUrl && activeSyncId === syncId) {
-      console.log(
-        `[CONNECT] Already connected to ${normalizedServerUrl}, skipping`,
-      );
+      console.log(`[CONNECT] Already connected to Actual Budget, skipping`);
       return;
     }
 
@@ -110,8 +106,6 @@ export async function connectToActual(
     console.error(`[CONNECT] Connection failed with error:`, {
       message: err?.message,
       code: err?.code,
-      stack: err?.stack,
-      cause: err?.cause,
     });
     throw new Error(
       err?.message ?? "Failed to download or sync budget from Actual server",
