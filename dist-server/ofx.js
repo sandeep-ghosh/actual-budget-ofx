@@ -11,13 +11,32 @@ function escapeOfxText(value) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 }
+function normalizeText(value) {
+    return String(value ?? "").trim();
+}
+function isUuidLike(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
 function formatTransactionMemo(transaction) {
-    const memo = String(transaction.memo || "").trim();
-    const notes = String(transaction.notes || "").trim();
+    const memo = normalizeText(transaction.memo);
+    const notes = normalizeText(transaction.notes);
+    if (memo && isUuidLike(memo) && notes) {
+        return notes;
+    }
     if (memo && notes && memo !== notes) {
         return `${memo} - ${notes}`;
     }
     return memo || notes;
+}
+function getTransactionPayeeName(transaction) {
+    if (!transaction) {
+        return "";
+    }
+    const payee = transaction.payee;
+    if (payee && typeof payee === "object") {
+        return normalizeText(payee.name || payee.title || payee.id);
+    }
+    return normalizeText(payee);
 }
 function getCurrency(account) {
     return String(account.currency ||
@@ -56,12 +75,11 @@ export function buildOfx(account, transactions, startDate, endDate) {
         const fitid = String(transaction.id ||
             transaction.import_id ||
             `${transaction.date}-${signedAmount}`);
-        const name = transaction.payee?.name ||
-            transaction.payee ||
-            transaction.memo ||
-            transaction.notes ||
-            accountName;
         const memo = formatTransactionMemo(transaction);
+        const payeeName = getTransactionPayeeName(transaction);
+        const name = (payeeName && !isUuidLike(payeeName) ? payeeName : "") ||
+            memo ||
+            accountName;
         return `
       <STMTTRN>
         <TRNTYPE>${type}</TRNTYPE>
