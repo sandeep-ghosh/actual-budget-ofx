@@ -30,7 +30,9 @@ app.post("/api/connect", async (req, res) => {
     typeof password !== "string" ||
     !password.trim()
   ) {
-    console.error(`[API /connect] Invalid input: serverUrl or password missing`);
+    console.error(
+      `[API /connect] Invalid input: serverUrl or password missing`,
+    );
     return res
       .status(400)
       .json({ error: "serverUrl and password are required" });
@@ -39,11 +41,11 @@ app.post("/api/connect", async (req, res) => {
   try {
     console.log(`[API /connect] Calling connectToActual...`);
     await connectToActual(serverUrl.trim(), password.trim());
-    
+
     console.log(`[API /connect] Fetching accounts...`);
     const accounts = await getAccounts();
     console.log(`[API /connect] Got ${accounts.length} accounts`);
-    
+
     console.log(`[API /connect] Fetching budget months...`);
     const months = await getBudgetMonths();
     console.log(`[API /connect] Got ${months.length} months`);

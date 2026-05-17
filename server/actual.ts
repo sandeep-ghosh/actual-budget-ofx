@@ -42,9 +42,9 @@ export async function connectToActual(serverUrl: string, password: string) {
   console.log(`[CONNECT] Starting connection to Actual Budget`);
   console.log(`[CONNECT] Server URL: ${serverUrl}`);
   console.log(`[CONNECT] Password length: ${password.length} chars`);
-  
+
   await ensureInitialized();
-  
+
   if (activeSyncId && activeSyncId === serverUrl) {
     console.log(`[CONNECT] Already connected to ${serverUrl}, skipping`);
     return;
@@ -54,16 +54,18 @@ export async function connectToActual(serverUrl: string, password: string) {
     // Preflight network check: attempt to GET the server root to catch obvious network/TLS errors
     const preflightUrl = serverUrl;
     console.log(`[PREFLIGHT] Testing network connectivity to: ${preflightUrl}`);
-    
+
     try {
       console.log(`[PREFLIGHT] Sending GET request...`);
       const resp = await fetch(preflightUrl, { method: "GET", timeout: 10000 });
-      console.log(`[PREFLIGHT] Response status: ${resp.status} ${resp.statusText}`);
+      console.log(
+        `[PREFLIGHT] Response status: ${resp.status} ${resp.statusText}`,
+      );
       console.log(`[PREFLIGHT] Response headers:`, {
-        contentType: resp.headers.get('content-type'),
-        contentLength: resp.headers.get('content-length'),
+        contentType: resp.headers.get("content-type"),
+        contentLength: resp.headers.get("content-length"),
       });
-      
+
       if (!resp.ok) {
         console.warn(
           `[PREFLIGHT] Server returned non-2xx: ${resp.status} ${resp.statusText}`,
@@ -89,11 +91,11 @@ export async function connectToActual(serverUrl: string, password: string) {
     console.log(`[DOWNLOAD] Attempting to download budget from: ${serverUrl}`);
     await downloadBudget(serverUrl, { password });
     console.log(`[DOWNLOAD] Budget downloaded successfully`);
-    
+
     console.log(`[SYNC] Syncing budget data...`);
     await sync();
     console.log(`[SYNC] Sync completed successfully`);
-    
+
     activeSyncId = serverUrl;
     console.log(`[CONNECT] Connection successful, active sync ID set`);
   } catch (err: any) {
