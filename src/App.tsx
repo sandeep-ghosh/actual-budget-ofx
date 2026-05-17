@@ -1,8 +1,8 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState } from "react";
 
 function App() {
-  const [serverUrl, setServerUrl] = useState('');
-  const [password, setPassword] = useState('');
+  const [serverUrl, setServerUrl] = useState("");
+  const [password, setPassword] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,15 +18,15 @@ function App() {
     setError(null);
     setConnecting(true);
     try {
-      const response = await fetch('/api/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serverUrl, password })
+      const response = await fetch("/api/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serverUrl, password }),
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        throw new Error(data?.error || 'Unable to connect to Actual Budget');
+        throw new Error(data?.error || "Unable to connect to Actual Budget");
       }
 
       const data = await response.json();
@@ -36,7 +36,7 @@ function App() {
       setSelectedMonth(data.months?.[0] ?? null);
       setConnected(true);
     } catch (err: any) {
-      setError(err?.message ?? 'Connection failed');
+      setError(err?.message ?? "Connection failed");
       setConnected(false);
     } finally {
       setConnecting(false);
@@ -44,24 +44,28 @@ function App() {
   }
 
   async function handleExport() {
-    if (!selectedAccount || !selectedMonth) return setError('Select account and month');
+    if (!selectedAccount || !selectedMonth)
+      return setError("Select account and month");
     setError(null);
     setExporting(true);
     try {
-      const res = await fetch('/api/export-ofx', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountId: selectedAccount, month: selectedMonth })
+      const res = await fetch("/api/export-ofx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId: selectedAccount,
+          month: selectedMonth,
+        }),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error || 'Export failed');
+        throw new Error(data?.error || "Export failed");
       }
 
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `ofx-${selectedAccount}-${selectedMonth}.ofx`;
       document.body.appendChild(a);
@@ -69,7 +73,7 @@ function App() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      setError(err?.message ?? 'Export failed');
+      setError(err?.message ?? "Export failed");
     } finally {
       setExporting(false);
     }
@@ -86,10 +90,13 @@ function App() {
             <strong>Connected!</strong>
             <p>The backend is now ready to fetch accounts and export OFX.</p>
 
-            <div style={{ marginTop: '1rem', display: 'grid', gap: '0.75rem' }}>
+            <div style={{ marginTop: "1rem", display: "grid", gap: "0.75rem" }}>
               <label>
                 Account
-                <select value={selectedAccount ?? ''} onChange={(e) => setSelectedAccount(e.target.value)}>
+                <select
+                  value={selectedAccount ?? ""}
+                  onChange={(e) => setSelectedAccount(e.target.value)}
+                >
                   {accounts.map((acc) => (
                     <option key={acc.id} value={acc.id}>
                       {acc.name || acc.id}
@@ -100,7 +107,10 @@ function App() {
 
               <label>
                 Month
-                <select value={selectedMonth ?? ''} onChange={(e) => setSelectedMonth(e.target.value)}>
+                <select
+                  value={selectedMonth ?? ""}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                >
                   {months.map((m) => (
                     <option key={m} value={m}>
                       {m}
@@ -110,7 +120,7 @@ function App() {
               </label>
 
               <button onClick={handleExport} disabled={exporting}>
-                {exporting ? 'Exporting…' : 'Export OFX'}
+                {exporting ? "Exporting…" : "Export OFX"}
               </button>
             </div>
           </div>
@@ -139,7 +149,7 @@ function App() {
             </label>
 
             <button type="submit" disabled={connecting}>
-              {connecting ? 'Connecting…' : 'Connect'}
+              {connecting ? "Connecting…" : "Connect"}
             </button>
           </form>
         )}
