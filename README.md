@@ -26,7 +26,7 @@ When opening this repo later in VS Code, the key areas are:
 
 - `src/` — React/Vite frontend UI
 - `server/` — Node backend, Actual Budget integration, OFX generation
-- `Dockerfile` / `docker-compose.yml` — container deployment
+- `Dockerfile` — container deployment
 - `.github/workflows/publish.yml` — GHCR build and publish on `main`/`master`
 
 Branch workflow:
@@ -68,12 +68,6 @@ docker run --rm -p 4000:4000 actual-budget-ofx
 
 Then open the app at `http://localhost:4000`.
 
-Or use Docker Compose:
-
-```bash
-docker compose up --build
-```
-
 If Actual Budget is running in another Docker container on the same Docker network, use that service/container hostname as the server URL, for example:
 
 ```text
@@ -93,13 +87,14 @@ Optional environment variables:
 - `ACTUAL_BUDGET_SYNC_ID` — budget sync/group ID to download. If omitted, the backend uses the first budget returned by Actual.
 - `DEFAULT_CURRENCY` — fallback OFX currency code when Actual account metadata does not include one. Defaults to `USD`.
 
-Example Docker Compose environment:
+Example Docker environment:
 
-```yaml
-environment:
-  - PORT=4000
-  - ACTUAL_BUDGET_SYNC_ID=your-budget-sync-id
-  - DEFAULT_CURRENCY=CAD
+```bash
+docker run --rm \
+  -p 4000:4000 \
+  -e ACTUAL_BUDGET_SYNC_ID=your-budget-sync-id \
+  -e DEFAULT_CURRENCY=CAD \
+  actual-budget-ofx
 ```
 
 ## OFX export behavior
