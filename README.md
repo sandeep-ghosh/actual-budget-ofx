@@ -52,6 +52,14 @@ Open the frontend at `http://localhost:5173` and enter your Actual Budget server
 
 The month dropdown shows the current month and the previous 12 months only.
 
+## Testing
+
+To run the automated smoke test (which builds the application, starts the local server, and verifies it is responding):
+
+```bash
+npm test
+```
+
 ## Docker deployment
 
 Build the image:
@@ -102,7 +110,7 @@ Public/custom domains are blocked by default to reduce server-side request forge
 Optional environment variables:
 
 - `ACTUAL_BUDGET_SYNC_ID` — budget sync/group ID to download. If omitted, the backend uses the first budget returned by Actual.
-- `DEFAULT_CURRENCY` — fallback OFX currency code when Actual account metadata does not include one. Defaults to `USD`.
+- `DEFAULT_CURRENCY` — fallback OFX currency code when Actual account metadata does not include one. Defaults to `CAD`.
 - `ACTUAL_ALLOWED_HOSTS` — comma-separated allowlist of Actual server hostnames. If omitted, the backend allows `localhost`, private IPv4 addresses, single-label Docker/LAN hostnames, and common private DNS suffixes such as `.local`, `.lan`, `.internal`, and `.ts.net`.
 - `RATE_LIMIT_WINDOW_MS` — request rate-limit window in milliseconds. Defaults to `60000`.
 - `RATE_LIMIT_MAX_REQUESTS` — maximum requests per client IP per window. Defaults to `60`.

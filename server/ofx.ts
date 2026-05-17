@@ -57,7 +57,7 @@ function getCurrency(account: any) {
     account.currency ||
       account.currencyCode ||
       process.env.DEFAULT_CURRENCY ||
-      "USD",
+      "CAD",
   ).toUpperCase();
 }
 
@@ -116,6 +116,11 @@ export function buildOfx(
         memo ||
         accountName;
 
+      // Avoid duplicating the same text in NAME and MEMO (Wave shows both together).
+      // If the memo equals the chosen name (case-insensitive), clear the memo.
+      const memoToUse =
+        memo && name && memo.toLowerCase() === name.toLowerCase() ? "" : memo;
+
       return `
       <STMTTRN>
         <TRNTYPE>${type}</TRNTYPE>
@@ -123,7 +128,7 @@ export function buildOfx(
         <TRNAMT>${signedAmount}</TRNAMT>
         <FITID>${escapeOfxText(fitid)}</FITID>
         <NAME>${escapeOfxText(name)}</NAME>
-        <MEMO>${escapeOfxText(memo)}</MEMO>
+        <MEMO>${escapeOfxText(memoToUse)}</MEMO>
       </STMTTRN>`;
     })
     .join("");
