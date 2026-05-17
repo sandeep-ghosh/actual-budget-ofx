@@ -80,6 +80,17 @@ If Actual Budget is running directly on your host machine during local developme
 http://localhost:5006
 ```
 
+Allowed Actual server URLs include local/private targets such as:
+
+```text
+http://localhost:5006
+http://actualbudget:5006
+http://10.0.0.10:5006
+https://actual.example.ts.net
+```
+
+Public/custom domains are blocked by default to reduce server-side request forgery risk. To allow one, set `ACTUAL_ALLOWED_HOSTS` to the exact hostname.
+
 ## Configuration
 
 Optional environment variables:
