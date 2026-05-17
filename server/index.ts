@@ -35,7 +35,11 @@ function isAllowedOrigin(origin: string) {
   );
 }
 
-function rateLimit(req: express.Request, res: express.Response, next: express.NextFunction) {
+function rateLimit(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction,
+) {
   const now = Date.now();
   const key = req.ip || req.socket.remoteAddress || "unknown";
   const bucket = rateLimitBuckets.get(key);
@@ -83,7 +87,6 @@ app.use(
     },
   }),
 );
-app.use(rateLimit);
 app.use(express.json());
 app.use(express.static(distPath));
 
@@ -91,7 +94,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.post("/api/connect", async (req, res) => {
+app.post("/api/connect", rateLimit, async (req, res) => {
   const { serverUrl, password } = req.body;
 
   console.log(`[API /connect] Incoming request`);
@@ -142,7 +145,7 @@ app.post("/api/connect", async (req, res) => {
   }
 });
 
-app.post("/api/export-ofx", async (req, res) => {
+app.post("/api/export-ofx", rateLimit, async (req, res) => {
   const { accountId, month } = req.body;
 
   if (
@@ -191,7 +194,7 @@ app.post("/api/export-ofx", async (req, res) => {
   }
 });
 
-app.get("*", (_req, res) => {
+app.get("*", rateLimit, (_req, res) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
 

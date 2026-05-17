@@ -49,7 +49,7 @@ jobs:
           scan-type: fs
           scan-ref: .
           scanners: vuln,secret,misconfig
-          severity: HIGH,CRITICAL
+          severity: MEDIUM,HIGH,CRITICAL
           exit-code: "0"
           format: sarif
           output: trivy-repository-results.sarif

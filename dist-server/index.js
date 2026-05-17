@@ -58,13 +58,12 @@ app.use(cors({
         callback(new Error("Origin not allowed by CORS"));
     },
 }));
-app.use(rateLimit);
 app.use(express.json());
 app.use(express.static(distPath));
 app.get("/api/health", (_req, res) => {
     res.json({ ok: true });
 });
-app.post("/api/connect", async (req, res) => {
+app.post("/api/connect", rateLimit, async (req, res) => {
     const { serverUrl, password } = req.body;
     console.log(`[API /connect] Incoming request`);
     if (typeof serverUrl !== "string" ||
@@ -102,7 +101,7 @@ app.post("/api/connect", async (req, res) => {
             .json({ error: error?.message ?? "Connection failed" });
     }
 });
-app.post("/api/export-ofx", async (req, res) => {
+app.post("/api/export-ofx", rateLimit, async (req, res) => {
     const { accountId, month } = req.body;
     if (typeof accountId !== "string" ||
         !accountId.trim() ||
@@ -138,7 +137,7 @@ app.post("/api/export-ofx", async (req, res) => {
             .json({ error: error?.message ?? "Failed to generate OFX" });
     }
 });
-app.get("*", (_req, res) => {
+app.get("*", rateLimit, (_req, res) => {
     res.sendFile(path.join(distPath, "index.html"));
 });
 app.listen(port, () => {
