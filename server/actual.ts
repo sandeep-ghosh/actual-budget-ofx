@@ -57,7 +57,7 @@ export async function connectToActual(serverUrl: string, password: string) {
 
     try {
       console.log(`[PREFLIGHT] Sending GET request...`);
-      const resp = await fetch(preflightUrl, { method: "GET", timeout: 10000 });
+      const resp = await fetch(preflightUrl, { method: "GET" });
       console.log(
         `[PREFLIGHT] Response status: ${resp.status} ${resp.statusText}`,
       );
