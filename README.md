@@ -68,6 +68,12 @@ docker run --rm -p 4000:4000 actual-budget-ofx
 
 Then open the app at `http://localhost:4000`.
 
+The container runs as a non-root user and exposes a health endpoint at:
+
+```text
+http://localhost:4000/api/health
+```
+
 If Actual Budget is running in another Docker container on the same Docker network, use that service/container hostname as the server URL, for example:
 
 ```text
@@ -162,3 +168,5 @@ The security workflow at `.github/workflows/security.yml` runs:
 The Docker image vulnerability workflow at `.github/workflows/image-vulnerability.yml` scans the published `latest` image after successful image publishing, on a weekly schedule, and when run manually.
 
 The published image scan fails when `HIGH` or `CRITICAL` vulnerabilities are detected, which is reflected in the README badge.
+
+Runtime hardening includes non-root container execution, a Docker healthcheck, request rate limiting, restricted CORS defaults, and Actual server URL validation to reduce SSRF risk.
