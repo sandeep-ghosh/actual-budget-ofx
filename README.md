@@ -86,6 +86,7 @@ Optional environment variables:
 
 - `ACTUAL_BUDGET_SYNC_ID` — budget sync/group ID to download. If omitted, the backend uses the first budget returned by Actual.
 - `DEFAULT_CURRENCY` — fallback OFX currency code when Actual account metadata does not include one. Defaults to `USD`.
+- `ACTUAL_ALLOWED_HOSTS` — comma-separated allowlist of Actual server hostnames. If omitted, the backend allows `localhost`, private IPv4 addresses, single-label Docker/LAN hostnames, and common private DNS suffixes such as `.local`, `.lan`, `.internal`, and `.ts.net`.
 
 Example Docker environment:
 
@@ -94,6 +95,7 @@ docker run --rm \
   -p 4000:4000 \
   -e ACTUAL_BUDGET_SYNC_ID=your-budget-sync-id \
   -e DEFAULT_CURRENCY=CAD \
+  -e ACTUAL_ALLOWED_HOSTS=actualbudget.local,actual.example.ts.net \
   actual-budget-ofx
 ```
 

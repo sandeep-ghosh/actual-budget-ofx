@@ -2,6 +2,7 @@ import os from "os";
 import path from "path";
 import fs from "fs";
 import { init, shutdown, downloadBudget, sync, getBudgets, getAccounts as fetchAccounts, getBudgetMonths as fetchBudgetMonths, getTransactions, utils, } from "@actual-app/api";
+import { validateAndNormalizeServerUrl } from "./server-url.js";
 let hasStarted = false;
 let activeServerUrl = null;
 let activeSyncId = null;
@@ -46,44 +47,15 @@ async function resolveBudgetSyncId(requestedSyncId) {
     return firstBudget.groupId;
 }
 export async function connectToActual(serverUrl, password, budgetSyncId) {
+    const normalizedServerUrl = validateAndNormalizeServerUrl(serverUrl);
     console.log(`[CONNECT] Starting connection to Actual Budget`);
-    console.log(`[CONNECT] Server URL: ${serverUrl}`);
+    console.log(`[CONNECT] Server URL: ${normalizedServerUrl}`);
     console.log(`[CONNECT] Password length: ${password.length} chars`);
     try {
-        // Preflight network check: attempt to GET the server root to catch obvious network/TLS errors
-        const preflightUrl = serverUrl;
-        console.log(`[PREFLIGHT] Testing network connectivity to: ${preflightUrl}`);
-        try {
-            console.log(`[PREFLIGHT] Sending GET request...`);
-            const resp = await fetch(preflightUrl, { method: "GET" });
-            console.log(`[PREFLIGHT] Response status: ${resp.status} ${resp.statusText}`);
-            console.log(`[PREFLIGHT] Response headers:`, {
-                contentType: resp.headers.get("content-type"),
-                contentLength: resp.headers.get("content-length"),
-            });
-            if (!resp.ok) {
-                console.warn(`[PREFLIGHT] Server returned non-2xx: ${resp.status} ${resp.statusText}`);
-            }
-            else {
-                console.log(`[PREFLIGHT] Server is reachable and responding`);
-            }
-        }
-        catch (preErr) {
-            console.error(`[PREFLIGHT] Network error:`, {
-                message: preErr?.message,
-                code: preErr?.code,
-                errno: preErr?.errno,
-                syscall: preErr?.syscall,
-                hostname: preErr?.hostname,
-                port: preErr?.port,
-                stack: preErr?.stack,
-            });
-            throw new Error(`Network preflight to ${preflightUrl} failed: ${preErr?.message ?? preErr}`);
-        }
-        await ensureInitialized(serverUrl, password);
+        await ensureInitialized(normalizedServerUrl, password);
         const syncId = await resolveBudgetSyncId(budgetSyncId);
-        if (activeServerUrl === serverUrl && activeSyncId === syncId) {
-            console.log(`[CONNECT] Already connected to ${serverUrl}, skipping`);
+        if (activeServerUrl === normalizedServerUrl && activeSyncId === syncId) {
+            console.log(`[CONNECT] Already connected to ${normalizedServerUrl}, skipping`);
             return;
         }
         console.log(`[DOWNLOAD] Attempting to download budget: ${syncId}`);
