@@ -1,5 +1,8 @@
 # actual-budget-ofx
 
+[![Security scanning](https://github.com/sandeep-ghosh/actual-budget-ofx/actions/workflows/security.yml/badge.svg)](https://github.com/sandeep-ghosh/actual-budget-ofx/actions/workflows/security.yml)
+[![Docker image vulnerabilities](https://github.com/sandeep-ghosh/actual-budget-ofx/actions/workflows/image-vulnerability.yml/badge.svg)](https://github.com/sandeep-ghosh/actual-budget-ofx/actions/workflows/image-vulnerability.yml)
+
 A lightweight web application that connects to Actual Budget via the official `@actual-app/api` package and exports transactions in OFX format for importing into Wave and other accounting software.
 
 It contains a minimal frontend/backend split, Docker deployment, and GitHub Actions publishing.
@@ -133,3 +136,17 @@ To use this workflow:
 The image will be published automatically.
 
 Replace `<OWNER>` with your GitHub account or organization name when pulling the image.
+
+## Security scanning
+
+This repo includes GitHub Actions workflows for code and container security scanning.
+The README badges show the current status of those scans.
+
+The security workflow at `.github/workflows/security.yml` runs:
+
+- CodeQL SAST for TypeScript and JavaScript
+- Trivy dependency, secret, and Dockerfile/config scanning
+
+The Docker image vulnerability workflow at `.github/workflows/image-vulnerability.yml` scans the published `latest` image after successful image publishing, on a weekly schedule, and when run manually.
+
+Trivy scans fail when `HIGH` or `CRITICAL` findings are detected, and results are uploaded to the GitHub Security tab.
