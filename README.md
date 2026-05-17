@@ -140,8 +140,8 @@ The README badges show the current status of those scans.
 The security workflow at `.github/workflows/security.yml` runs:
 
 - CodeQL SAST for TypeScript and JavaScript
-- Trivy dependency, secret, and Dockerfile/config scanning
+- Trivy dependency, secret, and Dockerfile/config scanning, with findings uploaded to GitHub Security
 
 The Docker image vulnerability workflow at `.github/workflows/image-vulnerability.yml` scans the published `latest` image after successful image publishing, on a weekly schedule, and when run manually.
 
-Trivy scans fail when `HIGH` or `CRITICAL` findings are detected, and results are uploaded to the GitHub Security tab.
+The published image scan fails when `HIGH` or `CRITICAL` vulnerabilities are detected, which is reflected in the README badge.
