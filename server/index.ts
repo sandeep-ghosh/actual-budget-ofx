@@ -1,4 +1,5 @@
 import path from "path";
+import fs from "fs";
 import express from "express";
 import cors from "cors";
 import {
@@ -13,6 +14,7 @@ import { validateAndNormalizeServerUrl } from "./server-url.js";
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
 const distPath = path.join(process.cwd(), "dist");
+const indexHtml = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
 const allowedOrigins = parseAllowedOrigins();
 const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000);
 const rateLimitMaxRequests = Number(process.env.RATE_LIMIT_MAX_REQUESTS ?? 60);
@@ -195,7 +197,7 @@ app.post("/api/export-ofx", rateLimit, async (req, res) => {
 });
 
 app.get("*", rateLimit, (_req, res) => {
-  res.sendFile(path.join(distPath, "index.html"));
+  res.type("html").send(indexHtml);
 });
 
 app.listen(port, () => {
