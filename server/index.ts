@@ -13,6 +13,52 @@ import { validateAndNormalizeServerUrl } from "./server-url.js";
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
 const distPath = path.join(process.cwd(), "dist");
+const allowedOrigins = parseAllowedOrigins();
+const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000);
+const rateLimitMaxRequests = Number(process.env.RATE_LIMIT_MAX_REQUESTS ?? 60);
+const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function parseAllowedOrigins() {
+  return (process.env.ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function isAllowedOrigin(origin: string) {
+  if (allowedOrigins.length > 0) {
+    return allowedOrigins.includes(origin);
+  }
+
+  return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/.test(
+    origin,
+  );
+}
+
+function rateLimit(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const now = Date.now();
+  const key = req.ip || req.socket.remoteAddress || "unknown";
+  const bucket = rateLimitBuckets.get(key);
+
+  if (!bucket || bucket.resetAt <= now) {
+    rateLimitBuckets.set(key, {
+      count: 1,
+      resetAt: now + rateLimitWindowMs,
+    });
+    return next();
+  }
+
+  if (bucket.count >= rateLimitMaxRequests) {
+    res.setHeader(
+      "Retry-After",
+      String(Math.ceil((bucket.resetAt - now) / 1000)),
+    );
+    return res.status(429).json({ error: "Too many requests" });
+  }
+
+  bucket.count += 1;
+  return next();
+}
 
 function buildOfxFilename(accountName: string, month: string) {
   const safeAccountName =
@@ -25,16 +71,30 @@ function buildOfxFilename(accountName: string, month: string) {
   return `${safeAccountName}-${month}.ofx`;
 }
 
-app.use(cors({ origin: true }));
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Origin not allowed by CORS"));
+    },
+  }),
+);
+app.use(rateLimit);
 app.use(express.json());
 app.use(express.static(distPath));
+
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true });
+});
 
 app.post("/api/connect", async (req, res) => {
   const { serverUrl, password } = req.body;
 
   console.log(`[API /connect] Incoming request`);
-  console.log(`[API /connect] serverUrl: ${serverUrl}`);
-  console.log(`[API /connect] password length: ${password?.length ?? 0} chars`);
 
   if (
     typeof serverUrl !== "string" ||
@@ -75,7 +135,6 @@ app.post("/api/connect", async (req, res) => {
     console.error(`[API /connect] Error:`, {
       message: error?.message,
       code: error?.code,
-      stack: error?.stack,
     });
     return res
       .status(statusCode)
