@@ -1,10 +1,17 @@
 import os from "os";
 import path from "path";
 import fs from "fs";
-import { init, shutdown, downloadBudget, sync, getAccounts as fetchAccounts, getBudgetMonths as fetchBudgetMonths, getTransactions, utils, } from "@actual-app/api";
+import { init, shutdown, downloadBudget, sync, getBudgets, getAccounts as fetchAccounts, getBudgetMonths as fetchBudgetMonths, getTransactions, utils, } from "@actual-app/api";
 let hasStarted = false;
+let activeServerUrl = null;
 let activeSyncId = null;
-async function ensureInitialized() {
+async function ensureInitialized(serverUrl, password) {
+    if (hasStarted && serverUrl && activeServerUrl !== serverUrl) {
+        await shutdown();
+        hasStarted = false;
+        activeServerUrl = null;
+        activeSyncId = null;
+    }
     if (!hasStarted) {
         const dataDir = process.env.ACTUAL_DATA_DIR ??
             path.join(os.tmpdir(), "actual-budget-ofx");
@@ -16,36 +23,85 @@ async function ensureInitialized() {
             console.error("Unable to create data directory for Actual API:", dataDir, err);
             throw err;
         }
-        await init({ dataDir });
+        await init({
+            dataDir,
+            ...(serverUrl ? { serverURL: serverUrl } : {}),
+            ...(password ? { password } : {}),
+        });
         hasStarted = true;
+        activeServerUrl = serverUrl ?? null;
     }
 }
-export async function connectToActual(serverUrl, password) {
-    await ensureInitialized();
-    if (activeSyncId && activeSyncId === serverUrl) {
-        return;
+async function resolveBudgetSyncId(requestedSyncId) {
+    const envSyncId = process.env.ACTUAL_BUDGET_SYNC_ID?.trim();
+    const syncId = requestedSyncId?.trim() || envSyncId;
+    if (syncId) {
+        return syncId;
     }
-    // Preflight network check: attempt to GET the server root to catch obvious network/TLS errors
+    const budgets = await getBudgets();
+    const firstBudget = budgets[0];
+    if (!firstBudget?.groupId) {
+        throw new Error("No Actual budget files found. Set ACTUAL_BUDGET_SYNC_ID if your server has multiple or hidden budgets.");
+    }
+    return firstBudget.groupId;
+}
+export async function connectToActual(serverUrl, password, budgetSyncId) {
+    console.log(`[CONNECT] Starting connection to Actual Budget`);
+    console.log(`[CONNECT] Server URL: ${serverUrl}`);
+    console.log(`[CONNECT] Password length: ${password.length} chars`);
     try {
+        // Preflight network check: attempt to GET the server root to catch obvious network/TLS errors
         const preflightUrl = serverUrl;
+        console.log(`[PREFLIGHT] Testing network connectivity to: ${preflightUrl}`);
         try {
+            console.log(`[PREFLIGHT] Sending GET request...`);
             const resp = await fetch(preflightUrl, { method: "GET" });
-            // If the server responds with non-2xx/3xx, still proceed — Actual server often returns HTML at root.
-            // But log status for debugging.
+            console.log(`[PREFLIGHT] Response status: ${resp.status} ${resp.statusText}`);
+            console.log(`[PREFLIGHT] Response headers:`, {
+                contentType: resp.headers.get("content-type"),
+                contentLength: resp.headers.get("content-length"),
+            });
             if (!resp.ok) {
-                console.warn(`Preflight GET ${preflightUrl} returned ${resp.status} ${resp.statusText}`);
+                console.warn(`[PREFLIGHT] Server returned non-2xx: ${resp.status} ${resp.statusText}`);
+            }
+            else {
+                console.log(`[PREFLIGHT] Server is reachable and responding`);
             }
         }
         catch (preErr) {
-            console.error("Preflight request to Actual server failed:", preErr?.message ?? preErr);
-            throw new Error(`Network preflight to Actual server failed: ${preErr?.message ?? preErr}`);
+            console.error(`[PREFLIGHT] Network error:`, {
+                message: preErr?.message,
+                code: preErr?.code,
+                errno: preErr?.errno,
+                syscall: preErr?.syscall,
+                hostname: preErr?.hostname,
+                port: preErr?.port,
+                stack: preErr?.stack,
+            });
+            throw new Error(`Network preflight to ${preflightUrl} failed: ${preErr?.message ?? preErr}`);
         }
-        await downloadBudget(serverUrl, { password });
+        await ensureInitialized(serverUrl, password);
+        const syncId = await resolveBudgetSyncId(budgetSyncId);
+        if (activeServerUrl === serverUrl && activeSyncId === syncId) {
+            console.log(`[CONNECT] Already connected to ${serverUrl}, skipping`);
+            return;
+        }
+        console.log(`[DOWNLOAD] Attempting to download budget: ${syncId}`);
+        await downloadBudget(syncId, { password });
+        console.log(`[DOWNLOAD] Budget downloaded successfully`);
+        console.log(`[SYNC] Syncing budget data...`);
         await sync();
-        activeSyncId = serverUrl;
+        console.log(`[SYNC] Sync completed successfully`);
+        activeSyncId = syncId;
+        console.log(`[CONNECT] Connection successful, active sync ID set`);
     }
     catch (err) {
-        console.error("connectToActual failed:", err?.stack ?? err);
+        console.error(`[CONNECT] Connection failed with error:`, {
+            message: err?.message,
+            code: err?.code,
+            stack: err?.stack,
+            cause: err?.cause,
+        });
         throw new Error(err?.message ?? "Failed to download or sync budget from Actual server");
     }
 }
@@ -75,6 +131,7 @@ export async function disconnectActual() {
     if (hasStarted) {
         await shutdown();
         hasStarted = false;
+        activeServerUrl = null;
         activeSyncId = null;
     }
 }

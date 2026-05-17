@@ -4,12 +4,18 @@ A lightweight web application that connects to Actual Budget via the official `@
 
 It contains a minimal frontend/backend split, Docker deployment, and GitHub Actions publishing.
 
+Actual Budget references:
+
+- Website: https://actualbudget.org/
+- API documentation: https://actualbudget.org/docs/api/
+- GitHub project: https://github.com/actualbudget/actual
+
 The app is intentionally minimal and does not use PostgreSQL or any persistent database. It receives:
 
 - Actual Budget server URL
 - password or server token
 
-from the frontend, then connects through the backend and prepares OFX export.
+from the frontend, then connects through the backend and prepares OFX export. The frontend remembers the last successful server URL in the browser; passwords should be saved through your browser password manager rather than app-managed storage.
 
 ## Project context for new sessions
 
@@ -41,6 +47,8 @@ npm run dev
 
 Open the frontend at `http://localhost:5173` and enter your Actual Budget server URL and password.
 
+The month dropdown shows the current month and the previous 12 months only.
+
 ## Docker deployment
 
 Build the image:
@@ -62,6 +70,49 @@ Or use Docker Compose:
 ```bash
 docker compose up --build
 ```
+
+If Actual Budget is running in another Docker container on the same Docker network, use that service/container hostname as the server URL, for example:
+
+```text
+http://actualbudget:5006
+```
+
+If Actual Budget is running directly on your host machine during local development, use the host URL, for example:
+
+```text
+http://localhost:5006
+```
+
+## Configuration
+
+Optional environment variables:
+
+- `ACTUAL_BUDGET_SYNC_ID` — budget sync/group ID to download. If omitted, the backend uses the first budget returned by Actual.
+- `DEFAULT_CURRENCY` — fallback OFX currency code when Actual account metadata does not include one. Defaults to `USD`.
+
+Example Docker Compose environment:
+
+```yaml
+environment:
+  - PORT=4000
+  - ACTUAL_BUDGET_SYNC_ID=your-budget-sync-id
+  - DEFAULT_CURRENCY=CAD
+```
+
+## OFX export behavior
+
+Downloaded files are named:
+
+```text
+Account Name-YYYY-MM.ofx
+```
+
+The OFX generator includes:
+
+- signed debit/credit amounts
+- currency from Actual account metadata when available, with `DEFAULT_CURRENCY` fallback
+- account type mapped from account metadata when available
+- Actual transaction notes in the OFX `<MEMO>` field
 
 ## GitHub Container Registry publishing
 

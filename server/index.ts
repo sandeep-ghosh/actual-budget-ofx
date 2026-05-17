@@ -13,6 +13,17 @@ const app = express();
 const port = Number(process.env.PORT ?? 4000);
 const distPath = path.join(process.cwd(), "dist");
 
+function buildOfxFilename(accountName: string, month: string) {
+  const safeAccountName =
+    accountName
+      .trim()
+      .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+      .replace(/\s+/g, " ")
+      .replace(/-+/g, "-") || "account";
+
+  return `${safeAccountName}-${month}.ofx`;
+}
+
 app.use(cors({ origin: true }));
 app.use(express.json());
 app.use(express.static(distPath));
@@ -102,7 +113,7 @@ app.post("/api/export-ofx", async (req, res) => {
     res.setHeader("Content-Type", "application/x-ofx");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="ofx-${accountId}-${month}.ofx"`,
+      `attachment; filename="${buildOfxFilename(account.name || accountId, month)}"`,
     );
     return res.send(ofx);
   } catch (error: any) {

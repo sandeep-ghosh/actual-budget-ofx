@@ -6,27 +6,49 @@ import { buildOfx } from "./ofx.js";
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
 const distPath = path.join(process.cwd(), "dist");
+function buildOfxFilename(accountName, month) {
+    const safeAccountName = accountName
+        .trim()
+        .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+        .replace(/\s+/g, " ")
+        .replace(/-+/g, "-") || "account";
+    return `${safeAccountName}-${month}.ofx`;
+}
 app.use(cors({ origin: true }));
 app.use(express.json());
 app.use(express.static(distPath));
 app.post("/api/connect", async (req, res) => {
     const { serverUrl, password } = req.body;
+    console.log(`[API /connect] Incoming request`);
+    console.log(`[API /connect] serverUrl: ${serverUrl}`);
+    console.log(`[API /connect] password length: ${password?.length ?? 0} chars`);
     if (typeof serverUrl !== "string" ||
         !serverUrl.trim() ||
         typeof password !== "string" ||
         !password.trim()) {
+        console.error(`[API /connect] Invalid input: serverUrl or password missing`);
         return res
             .status(400)
             .json({ error: "serverUrl and password are required" });
     }
     try {
+        console.log(`[API /connect] Calling connectToActual...`);
         await connectToActual(serverUrl.trim(), password.trim());
+        console.log(`[API /connect] Fetching accounts...`);
         const accounts = await getAccounts();
+        console.log(`[API /connect] Got ${accounts.length} accounts`);
+        console.log(`[API /connect] Fetching budget months...`);
         const months = await getBudgetMonths();
+        console.log(`[API /connect] Got ${months.length} months`);
+        console.log(`[API /connect] Connection successful, returning response`);
         return res.json({ connected: true, accounts, months });
     }
     catch (error) {
-        console.error("Failed to connect to Actual Budget:", error);
+        console.error(`[API /connect] Error:`, {
+            message: error?.message,
+            code: error?.code,
+            stack: error?.stack,
+        });
         return res
             .status(500)
             .json({ error: error?.message ?? "Connection failed" });
@@ -58,7 +80,7 @@ app.post("/api/export-ofx", async (req, res) => {
         const endDate = `${year}-${String(monthNum).padStart(2, "0")}-${String(endDateObj.getDate()).padStart(2, "0")}`;
         const ofx = buildOfx(account, transactions, startDate, endDate);
         res.setHeader("Content-Type", "application/x-ofx");
-        res.setHeader("Content-Disposition", `attachment; filename="ofx-${accountId}-${month}.ofx"`);
+        res.setHeader("Content-Disposition", `attachment; filename="${buildOfxFilename(account.name || accountId, month)}"`);
         return res.send(ofx);
     }
     catch (error) {

@@ -5,9 +5,46 @@ function formatOfxDate(date) {
 function formatCurrency(amount) {
     return amount.toFixed(2);
 }
+function escapeOfxText(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+function formatTransactionMemo(transaction) {
+    const memo = String(transaction.memo || "").trim();
+    const notes = String(transaction.notes || "").trim();
+    if (memo && notes && memo !== notes) {
+        return `${memo} - ${notes}`;
+    }
+    return memo || notes;
+}
+function getCurrency(account) {
+    return String(account.currency ||
+        account.currencyCode ||
+        process.env.DEFAULT_CURRENCY ||
+        "USD").toUpperCase();
+}
+function getAccountType(account) {
+    const rawType = String(account.accountType || account.type || account.offbudget || "").toLowerCase();
+    if (rawType.includes("saving")) {
+        return "SAVINGS";
+    }
+    if (rawType.includes("credit") ||
+        rawType.includes("card") ||
+        rawType === "true") {
+        return "CREDITLINE";
+    }
+    if (rawType.includes("money") || rawType.includes("market")) {
+        return "MONEYMRKT";
+    }
+    return "CHECKING";
+}
 export function buildOfx(account, transactions, startDate, endDate) {
     const accountNumber = account.number || account.id || "000000";
     const accountName = account.name || "Actual Budget Account";
+    const currency = getCurrency(account);
+    const accountType = getAccountType(account);
     const dtStart = formatOfxDate(new Date(startDate));
     const dtEnd = formatOfxDate(new Date(endDate));
     const dtServer = formatOfxDate(new Date());
@@ -22,18 +59,20 @@ export function buildOfx(account, transactions, startDate, endDate) {
         const name = transaction.payee?.name ||
             transaction.payee ||
             transaction.memo ||
+            transaction.notes ||
             accountName;
+        const memo = formatTransactionMemo(transaction);
         return `
       <STMTTRN>
         <TRNTYPE>${type}</TRNTYPE>
         <DTPOSTED>${formatOfxDate(new Date(transaction.date))}</DTPOSTED>
         <TRNAMT>${signedAmount}</TRNAMT>
-        <FITID>${fitid}</FITID>
-        <NAME>${name}</NAME>
-        <MEMO>${transaction.memo || ""}</MEMO>
+        <FITID>${escapeOfxText(fitid)}</FITID>
+        <NAME>${escapeOfxText(name)}</NAME>
+        <MEMO>${escapeOfxText(memo)}</MEMO>
       </STMTTRN>`;
     })
         .join("");
-    return `OFXHEADER:100\nDATA:OFXSGML\nVERSION:102\nSECURITY:NONE\nENCODING:UTF-8\nCHARSET:1252\nCOMPRESSION:NONE\nOLDFILEUID:NONE\nNEWFILEUID:NONE\n\n<OFX>\n  <SIGNONMSGSRSV1>\n    <SONRS>\n      <STATUS>\n        <CODE>0</CODE>\n        <SEVERITY>INFO</SEVERITY>\n      </STATUS>\n      <DTSERVER>${dtServer}</DTSERVER>\n      <LANGUAGE>ENG</LANGUAGE>\n    </SONRS>\n  </SIGNONMSGSRSV1>\n  <BANKMSGSRSV1>\n    <STMTTRNRS>\n      <TRNUID>1</TRNUID>\n      <STATUS>\n        <CODE>0</CODE>\n        <SEVERITY>INFO</SEVERITY>\n      </STATUS>\n      <STMTRS>\n        <CURDEF>USD</CURDEF>\n        <BANKACCTFROM>\n          <BANKID>${accountNumber}</BANKID>\n          <ACCTID>${accountNumber}</ACCTID>\n          <ACCTTYPE>CHECKING</ACCTTYPE>\n        </BANKACCTFROM>\n        <BANKTRANLIST>\n          <DTSTART>${dtStart}</DTSTART>\n          <DTEND>${dtEnd}</DTEND>${txnRows}\n        </BANKTRANLIST>\n      </STMTRS>\n    </STMTTRNRS>\n  </BANKMSGSRSV1>\n</OFX>`;
+    return `OFXHEADER:100\nDATA:OFXSGML\nVERSION:102\nSECURITY:NONE\nENCODING:UTF-8\nCHARSET:1252\nCOMPRESSION:NONE\nOLDFILEUID:NONE\nNEWFILEUID:NONE\n\n<OFX>\n  <SIGNONMSGSRSV1>\n    <SONRS>\n      <STATUS>\n        <CODE>0</CODE>\n        <SEVERITY>INFO</SEVERITY>\n      </STATUS>\n      <DTSERVER>${dtServer}</DTSERVER>\n      <LANGUAGE>ENG</LANGUAGE>\n    </SONRS>\n  </SIGNONMSGSRSV1>\n  <BANKMSGSRSV1>\n    <STMTTRNRS>\n      <TRNUID>1</TRNUID>\n      <STATUS>\n        <CODE>0</CODE>\n        <SEVERITY>INFO</SEVERITY>\n      </STATUS>\n      <STMTRS>\n        <CURDEF>${currency}</CURDEF>\n        <BANKACCTFROM>\n          <BANKID>${accountNumber}</BANKID>\n          <ACCTID>${accountNumber}</ACCTID>\n          <ACCTTYPE>${accountType}</ACCTTYPE>\n        </BANKACCTFROM>\n        <BANKTRANLIST>\n          <DTSTART>${dtStart}</DTSTART>\n          <DTEND>${dtEnd}</DTEND>${txnRows}\n        </BANKTRANLIST>\n      </STMTRS>\n    </STMTTRNRS>\n  </BANKMSGSRSV1>\n</OFX>`;
 }
 //# sourceMappingURL=ofx.js.map
