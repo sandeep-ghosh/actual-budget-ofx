@@ -14,7 +14,7 @@ The repository currently implements a minimal React + Vite frontend and a Node.j
 - Backend: `server/`
 - OFX generation: `server/ofx.ts`
 - Actual Budget integration: `server/actual.ts`
-- Docker support: `Dockerfile`, `docker-compose.yml`
+- Docker support: `Dockerfile`
 - GitHub Actions publishing: `.github/workflows/publish.yml`
 
 Current functionality:
@@ -217,10 +217,11 @@ Avoid:
 
 # Docker Requirements
 
-The application should run using:
+The application should run using the provided Dockerfile:
 
 ```bash
-docker compose up
+docker build -t actual-budget-ofx .
+docker run --rm -p 4000:4000 actual-budget-ofx
 ```
 
 Goals:
