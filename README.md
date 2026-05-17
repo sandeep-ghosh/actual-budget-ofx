@@ -104,7 +104,6 @@ Optional environment variables:
 - `ACTUAL_BUDGET_SYNC_ID` — budget sync/group ID to download. If omitted, the backend uses the first budget returned by Actual.
 - `DEFAULT_CURRENCY` — fallback OFX currency code when Actual account metadata does not include one. Defaults to `USD`.
 - `ACTUAL_ALLOWED_HOSTS` — comma-separated allowlist of Actual server hostnames. If omitted, the backend allows `localhost`, private IPv4 addresses, single-label Docker/LAN hostnames, and common private DNS suffixes such as `.local`, `.lan`, `.internal`, and `.ts.net`.
-- `ALLOWED_ORIGINS` — comma-separated browser origins allowed by CORS. If omitted, localhost browser origins are allowed.
 - `RATE_LIMIT_WINDOW_MS` — request rate-limit window in milliseconds. Defaults to `60000`.
 - `RATE_LIMIT_MAX_REQUESTS` — maximum requests per client IP per window. Defaults to `60`.
 
@@ -116,7 +115,6 @@ docker run --rm \
   -e ACTUAL_BUDGET_SYNC_ID=your-budget-sync-id \
   -e DEFAULT_CURRENCY=CAD \
   -e ACTUAL_ALLOWED_HOSTS=actualbudget.local,actual.example.ts.net \
-  -e ALLOWED_ORIGINS=http://localhost:4000 \
   actual-budget-ofx
 ```
 

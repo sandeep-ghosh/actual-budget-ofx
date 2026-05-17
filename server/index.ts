@@ -15,27 +15,9 @@ const app = express();
 const port = Number(process.env.PORT ?? 4000);
 const distPath = path.join(process.cwd(), "dist");
 const indexHtml = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
-const allowedOrigins = parseAllowedOrigins();
 const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000);
 const rateLimitMaxRequests = Number(process.env.RATE_LIMIT_MAX_REQUESTS ?? 60);
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
-
-function parseAllowedOrigins() {
-  return (process.env.ALLOWED_ORIGINS ?? "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-}
-
-function isAllowedOrigin(origin: string) {
-  if (allowedOrigins.length > 0) {
-    return allowedOrigins.includes(origin);
-  }
-
-  return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/.test(
-    origin,
-  );
-}
 
 function rateLimit(
   req: express.Request,
@@ -77,18 +59,7 @@ function buildOfxFilename(accountName: string, month: string) {
   return `${safeAccountName}-${month}.ofx`;
 }
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || isAllowedOrigin(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error("Origin not allowed by CORS"));
-    },
-  }),
-);
+app.use(cors());
 app.use(express.json());
 app.use(express.static(distPath));
 
