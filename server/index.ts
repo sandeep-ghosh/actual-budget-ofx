@@ -6,8 +6,8 @@ import {
   getAccounts,
   getBudgetMonths,
   getTransactionsForMonth,
-} from "./actual";
-import { buildOfx } from "./ofx";
+} from "./actual.js";
+import { buildOfx } from "./ofx.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
