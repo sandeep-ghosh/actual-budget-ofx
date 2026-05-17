@@ -20,25 +20,44 @@ app.use(express.static(distPath));
 app.post("/api/connect", async (req, res) => {
   const { serverUrl, password } = req.body;
 
+  console.log(`[API /connect] Incoming request`);
+  console.log(`[API /connect] serverUrl: ${serverUrl}`);
+  console.log(`[API /connect] password length: ${password?.length ?? 0} chars`);
+
   if (
     typeof serverUrl !== "string" ||
     !serverUrl.trim() ||
     typeof password !== "string" ||
     !password.trim()
   ) {
+    console.error(
+      `[API /connect] Invalid input: serverUrl or password missing`,
+    );
     return res
       .status(400)
       .json({ error: "serverUrl and password are required" });
   }
 
   try {
+    console.log(`[API /connect] Calling connectToActual...`);
     await connectToActual(serverUrl.trim(), password.trim());
-    const accounts = await getAccounts();
-    const months = await getBudgetMonths();
 
+    console.log(`[API /connect] Fetching accounts...`);
+    const accounts = await getAccounts();
+    console.log(`[API /connect] Got ${accounts.length} accounts`);
+
+    console.log(`[API /connect] Fetching budget months...`);
+    const months = await getBudgetMonths();
+    console.log(`[API /connect] Got ${months.length} months`);
+
+    console.log(`[API /connect] Connection successful, returning response`);
     return res.json({ connected: true, accounts, months });
   } catch (error: any) {
-    console.error("Failed to connect to Actual Budget:", error);
+    console.error(`[API /connect] Error:`, {
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack,
+    });
     return res
       .status(500)
       .json({ error: error?.message ?? "Connection failed" });

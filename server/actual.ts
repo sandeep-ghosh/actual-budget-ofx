@@ -39,38 +39,72 @@ async function ensureInitialized() {
 }
 
 export async function connectToActual(serverUrl: string, password: string) {
+  console.log(`[CONNECT] Starting connection to Actual Budget`);
+  console.log(`[CONNECT] Server URL: ${serverUrl}`);
+  console.log(`[CONNECT] Password length: ${password.length} chars`);
+
   await ensureInitialized();
+
   if (activeSyncId && activeSyncId === serverUrl) {
+    console.log(`[CONNECT] Already connected to ${serverUrl}, skipping`);
     return;
   }
 
-  // Preflight network check: attempt to GET the server root to catch obvious network/TLS errors
   try {
+    // Preflight network check: attempt to GET the server root to catch obvious network/TLS errors
     const preflightUrl = serverUrl;
+    console.log(`[PREFLIGHT] Testing network connectivity to: ${preflightUrl}`);
+
     try {
-      const resp = await fetch(preflightUrl, { method: "GET" });
-      // If the server responds with non-2xx/3xx, still proceed — Actual server often returns HTML at root.
-      // But log status for debugging.
+      console.log(`[PREFLIGHT] Sending GET request...`);
+      const resp = await fetch(preflightUrl, { method: "GET", timeout: 10000 });
+      console.log(
+        `[PREFLIGHT] Response status: ${resp.status} ${resp.statusText}`,
+      );
+      console.log(`[PREFLIGHT] Response headers:`, {
+        contentType: resp.headers.get("content-type"),
+        contentLength: resp.headers.get("content-length"),
+      });
+
       if (!resp.ok) {
         console.warn(
-          `Preflight GET ${preflightUrl} returned ${resp.status} ${resp.statusText}`,
+          `[PREFLIGHT] Server returned non-2xx: ${resp.status} ${resp.statusText}`,
         );
+      } else {
+        console.log(`[PREFLIGHT] Server is reachable and responding`);
       }
     } catch (preErr: any) {
-      console.error(
-        "Preflight request to Actual server failed:",
-        preErr?.message ?? preErr,
-      );
+      console.error(`[PREFLIGHT] Network error:`, {
+        message: preErr?.message,
+        code: preErr?.code,
+        errno: preErr?.errno,
+        syscall: preErr?.syscall,
+        hostname: preErr?.hostname,
+        port: preErr?.port,
+        stack: preErr?.stack,
+      });
       throw new Error(
-        `Network preflight to Actual server failed: ${preErr?.message ?? preErr}`,
+        `Network preflight to ${preflightUrl} failed: ${preErr?.message ?? preErr}`,
       );
     }
 
+    console.log(`[DOWNLOAD] Attempting to download budget from: ${serverUrl}`);
     await downloadBudget(serverUrl, { password });
+    console.log(`[DOWNLOAD] Budget downloaded successfully`);
+
+    console.log(`[SYNC] Syncing budget data...`);
     await sync();
+    console.log(`[SYNC] Sync completed successfully`);
+
     activeSyncId = serverUrl;
+    console.log(`[CONNECT] Connection successful, active sync ID set`);
   } catch (err: any) {
-    console.error("connectToActual failed:", err?.stack ?? err);
+    console.error(`[CONNECT] Connection failed with error:`, {
+      message: err?.message,
+      code: err?.code,
+      stack: err?.stack,
+      cause: err?.cause,
+    });
     throw new Error(
       err?.message ?? "Failed to download or sync budget from Actual server",
     );
