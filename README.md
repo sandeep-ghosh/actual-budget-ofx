@@ -66,10 +66,12 @@ docker compose up --build
 ## GitHub Container Registry publishing
 
 This repo includes a GitHub Actions workflow at `.github/workflows/publish.yml`.
-When code is merged into `main` or `master`, the workflow builds the Docker image and pushes two tags to GitHub Container Registry:
+When code is merged into `main` or `master`, the workflow builds the Docker image for multiple architectures and pushes two tags to GitHub Container Registry:
 
 - `ghcr.io/<OWNER>/actual-budget-ofx:<SHA>`
 - `ghcr.io/<OWNER>/actual-budget-ofx:latest`
+
+The published image can be pulled on both `linux/amd64` and `linux/arm64` platforms.
 
 To use this workflow:
 
