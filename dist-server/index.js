@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { connectToActual, getAccounts, getBudgetMonths, getTransactionsForMonth, } from "./actual.js";
 import { buildOfx } from "./ofx.js";
+import { validateAndNormalizeServerUrl } from "./server-url.js";
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
 const distPath = path.join(process.cwd(), "dist");
@@ -32,8 +33,9 @@ app.post("/api/connect", async (req, res) => {
             .json({ error: "serverUrl and password are required" });
     }
     try {
+        const normalizedServerUrl = validateAndNormalizeServerUrl(serverUrl);
         console.log(`[API /connect] Calling connectToActual...`);
-        await connectToActual(serverUrl.trim(), password.trim());
+        await connectToActual(normalizedServerUrl, password.trim());
         console.log(`[API /connect] Fetching accounts...`);
         const accounts = await getAccounts();
         console.log(`[API /connect] Got ${accounts.length} accounts`);
@@ -44,13 +46,16 @@ app.post("/api/connect", async (req, res) => {
         return res.json({ connected: true, accounts, months });
     }
     catch (error) {
+        const statusCode = error instanceof Error && error.message.includes("server URL")
+            ? 400
+            : 500;
         console.error(`[API /connect] Error:`, {
             message: error?.message,
             code: error?.code,
             stack: error?.stack,
         });
         return res
-            .status(500)
+            .status(statusCode)
             .json({ error: error?.message ?? "Connection failed" });
     }
 });

@@ -8,6 +8,7 @@ import {
   getTransactionsForMonth,
 } from "./actual.js";
 import { buildOfx } from "./ofx.js";
+import { validateAndNormalizeServerUrl } from "./server-url.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -50,8 +51,10 @@ app.post("/api/connect", async (req, res) => {
   }
 
   try {
+    const normalizedServerUrl = validateAndNormalizeServerUrl(serverUrl);
+
     console.log(`[API /connect] Calling connectToActual...`);
-    await connectToActual(serverUrl.trim(), password.trim());
+    await connectToActual(normalizedServerUrl, password.trim());
 
     console.log(`[API /connect] Fetching accounts...`);
     const accounts = await getAccounts();
@@ -64,13 +67,18 @@ app.post("/api/connect", async (req, res) => {
     console.log(`[API /connect] Connection successful, returning response`);
     return res.json({ connected: true, accounts, months });
   } catch (error: any) {
+    const statusCode =
+      error instanceof Error && error.message.includes("server URL")
+        ? 400
+        : 500;
+
     console.error(`[API /connect] Error:`, {
       message: error?.message,
       code: error?.code,
       stack: error?.stack,
     });
     return res
-      .status(500)
+      .status(statusCode)
       .json({ error: error?.message ?? "Connection failed" });
   }
 });

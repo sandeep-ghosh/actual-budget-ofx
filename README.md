@@ -80,12 +80,24 @@ If Actual Budget is running directly on your host machine during local developme
 http://localhost:5006
 ```
 
+Allowed Actual server URLs include local/private targets such as:
+
+```text
+http://localhost:5006
+http://actualbudget:5006
+http://10.0.0.10:5006
+https://actual.example.ts.net
+```
+
+Public/custom domains are blocked by default to reduce server-side request forgery risk. To allow one, set `ACTUAL_ALLOWED_HOSTS` to the exact hostname.
+
 ## Configuration
 
 Optional environment variables:
 
 - `ACTUAL_BUDGET_SYNC_ID` — budget sync/group ID to download. If omitted, the backend uses the first budget returned by Actual.
 - `DEFAULT_CURRENCY` — fallback OFX currency code when Actual account metadata does not include one. Defaults to `USD`.
+- `ACTUAL_ALLOWED_HOSTS` — comma-separated allowlist of Actual server hostnames. If omitted, the backend allows `localhost`, private IPv4 addresses, single-label Docker/LAN hostnames, and common private DNS suffixes such as `.local`, `.lan`, `.internal`, and `.ts.net`.
 
 Example Docker environment:
 
@@ -94,6 +106,7 @@ docker run --rm \
   -p 4000:4000 \
   -e ACTUAL_BUDGET_SYNC_ID=your-budget-sync-id \
   -e DEFAULT_CURRENCY=CAD \
+  -e ACTUAL_ALLOWED_HOSTS=actualbudget.local,actual.example.ts.net \
   actual-budget-ofx
 ```
 
